@@ -1,11 +1,13 @@
 use std::{
     fs,
+    io::{self, Write},
     path::Path,
-    process::{exit, Command},
+    process::{exit, Command, Stdio},
 };
 
 use anyhow::{Context, Result};
 use clap::Parser;
+use colored::Colorize;
 use regex::Regex;
 
 #[derive(Parser, Debug)]
@@ -43,12 +45,48 @@ fn main() -> Result<()> {
 
     let mut git = Command::new("git");
 
-    match git.arg("clone").arg(url).arg(&clone_path).status() {
-        Ok(_) => (),
-        Err(err) => {
-            eprintln!("Couldn't clone the repository, exited with code {err}")
+    if let Ok(child) = git
+        .arg("clone")
+        .arg(url)
+        .arg(&clone_path)
+        .stdout(Stdio::null())
+        .stdin(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+    {
+        println!(
+            "Cloning {} to {} from {}",
+            format!("{}/{}", &metadata.owner, &metadata.name).cyan(),
+            &clone_path.green().bold(),
+            &metadata.host.white().bold()
+        );
+        if let Ok(output) = child.wait_with_output() {
+            if !output.status.success() {
+                let exit_code = output.status.code().expect("Failed to get exit status");
+                let error = format!(
+                    "git process failed, exited with code {}",
+                    exit_code.clone().to_string().bold().red()
+                );
+                eprintln!("{error}");
+                io::stderr()
+                    .write_all(&output.stderr)
+                    .expect("Failed to print git process output");
+                exit(exit_code);
+            } else {
+                println!(
+                    "Successfuly cloned {} to {}",
+                    format!("{}/{}", &metadata.owner, &metadata.name).cyan(),
+                    &clone_path.green().bold(),
+                );
+            }
+        } else {
+            eprintln!("Failed to wait git process to run!");
+            exit(1);
         }
-    };
+    } else {
+        eprintln!("Couldn't run git command");
+        exit(1);
+    }
 
     fs::remove_dir_all(format!("{clone_path}/.git"))?;
 
