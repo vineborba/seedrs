@@ -1,11 +1,10 @@
 use std::{
     fs,
-    io::{self, Write},
     path::Path,
     process::{exit, Command, Stdio},
 };
 
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use clap::Parser;
 use colored::Colorize;
 use regex::Regex;
@@ -43,9 +42,7 @@ fn main() -> Result<()> {
         &metadata.https
     };
 
-    let mut git = Command::new("git");
-
-    if let Ok(child) = git
+    let git_process = Command::new("git")
         .arg("clone")
         .arg(url)
         .arg(&clone_path)
@@ -53,40 +50,31 @@ fn main() -> Result<()> {
         .stdin(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
-    {
-        println!(
-            "Cloning {} to {} from {}",
-            format!("{}/{}", &metadata.owner, &metadata.name).cyan(),
-            &clone_path.green().bold(),
-            &metadata.host.white().bold()
+        .with_context(|| "Failed to spawn git process")?;
+
+    println!(
+        "Cloning {} to {} from {}",
+        format!("{}/{}", &metadata.owner, &metadata.name).cyan(),
+        &clone_path.green().bold(),
+        &metadata.host.white().bold()
+    );
+
+    let output = git_process.wait_with_output().with_context(|| "")?;
+    if !output.status.success() {
+        let exit_code = output.status.code().expect("Failed to get exit status");
+        let error = format!(
+            "git process failed, exited with code {}",
+            exit_code.clone().to_string().bold().red()
         );
-        if let Ok(output) = child.wait_with_output() {
-            if !output.status.success() {
-                let exit_code = output.status.code().expect("Failed to get exit status");
-                let error = format!(
-                    "git process failed, exited with code {}",
-                    exit_code.clone().to_string().bold().red()
-                );
-                eprintln!("{error}");
-                io::stderr()
-                    .write_all(&output.stderr)
-                    .expect("Failed to print git process output");
-                exit(exit_code);
-            } else {
-                println!(
-                    "Successfuly cloned {} to {}",
-                    format!("{}/{}", &metadata.owner, &metadata.name).cyan(),
-                    &clone_path.green().bold(),
-                );
-            }
-        } else {
-            eprintln!("Failed to wait git process to run!");
-            exit(1);
-        }
-    } else {
-        eprintln!("Couldn't run git command");
-        exit(1);
+        eprintln!("{error}");
+        exit(exit_code)
     }
+
+    println!(
+        "Successfuly cloned {} to {}",
+        format!("{}/{}", &metadata.owner, &metadata.name).cyan(),
+        &clone_path.green().bold(),
+    );
 
     fs::remove_dir_all(format!("{clone_path}/.git"))?;
 
@@ -99,7 +87,7 @@ fn parse_path(url: &str) -> Result<Metadata> {
     )?;
 
     let Some(captures) = re.captures(url) else {
-        panic!("Invalid url!")
+        bail!("Invalid URL provided");
     };
 
     let owner = String::from(&captures["repo_owner"]);
@@ -136,8 +124,7 @@ fn check_destination(name: &str, dest: &Option<String>) -> Result<String> {
         .with_context(|| "Can't verify destination.")?;
 
     if exists {
-        eprintln!("Can't write to destination. Path already exists!");
-        exit(1);
+        bail!("Can't write to destination. Path already exists!");
     }
 
     Ok(String::from(
