@@ -83,7 +83,7 @@ fn main() -> Result<()> {
 
 fn parse_path(url: &str) -> Result<Metadata> {
     let re = Regex::new(
-        r"^(https?://|git@)?(?<host>github|gitlab(\.[\w\-]*)?)\.(?<dns>com|org)(/|:)(?<repo_owner>[\w\-]+)/(?<repo_name>\w+)\.git$",
+        r"^(https?://|git@)?(?<host>github|gitlab(\.[\w\-]*)?)\.(?<dns>com|org)(/|:)(?<repo_owner>[\w\-]+)/(?<repo_name>[\w\-.]+)\.git$",
     )?;
 
     let Some(captures) = re.captures(url) else {
