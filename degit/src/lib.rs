@@ -11,7 +11,7 @@ use colored::Colorize;
 use options::Options;
 use regex::Regex;
 
-pub struct Metadata {
+pub struct Repository {
     pub owner: String,
     pub name: String,
     pub https: String,
@@ -19,7 +19,7 @@ pub struct Metadata {
     pub host: String,
 }
 
-impl Metadata {
+impl Repository {
     pub fn from_url(url: &str) -> Result<Self> {
         let re = Regex::new(
             r"^(https?://|git@)?(?<host>github|gitlab(\.[\w\-]*)?)\.(?<dns>com|org)(/|:)(?<repo_owner>[\w\-]+)/(?<repo_name>[\w\-.]+)\.git$",
@@ -43,16 +43,42 @@ impl Metadata {
             host,
         })
     }
+
+    pub fn check_destination(&self, dest: &Option<String>) -> Result<String> {
+        let p = if let Some(d) = dest.as_deref() {
+            let mut p = String::from(d);
+            if p.ends_with('/') {
+                p.push_str(&self.name);
+            }
+            p
+        } else {
+            format!("./{}", self.name)
+        };
+
+        let parsed_path = Path::new(&p);
+
+        let exists = parsed_path
+            .try_exists()
+            .with_context(|| "Can't verify destination.")?;
+
+        if exists {
+            bail!("Can't write to destination. Path already exists!");
+        }
+
+        Ok(String::from(
+            parsed_path.to_str().expect("Failed to parse path"),
+        ))
+    }
 }
 
 pub fn run(opt: Options) -> Result<()> {
-    let metadata = Metadata::from_url(&opt.url)?;
-    let clone_path = check_destination(&metadata.name, &opt.dest)?;
+    let repository = Repository::from_url(&opt.url)?;
+    let clone_path = repository.check_destination(&opt.dest)?;
 
     let url = if opt.ssh {
-        &metadata.ssh
+        &repository.ssh
     } else {
-        &metadata.https
+        &repository.https
     };
 
     let git_process = Command::new("git")
@@ -67,9 +93,9 @@ pub fn run(opt: Options) -> Result<()> {
 
     println!(
         "Cloning {} to {} from {}",
-        format!("{}/{}", &metadata.owner, &metadata.name).cyan(),
+        format!("{}/{}", &repository.owner, &repository.name).cyan(),
         &clone_path.green().bold(),
-        &metadata.host.white().bold()
+        &repository.host.white().bold()
     );
 
     let output = git_process.wait_with_output().with_context(|| "")?;
@@ -85,37 +111,11 @@ pub fn run(opt: Options) -> Result<()> {
 
     println!(
         "Successfuly cloned {} to {}",
-        format!("{}/{}", &metadata.owner, &metadata.name).cyan(),
+        format!("{}/{}", &repository.owner, &repository.name).cyan(),
         &clone_path.green().bold(),
     );
 
     fs::remove_dir_all(format!("{clone_path}/.git"))?;
 
     Ok(())
-}
-
-fn check_destination(name: &str, dest: &Option<String>) -> Result<String> {
-    let p = if let Some(d) = dest.as_deref() {
-        let mut p = String::from(d);
-        if p.ends_with('/') {
-            p.push_str(name);
-        }
-        p
-    } else {
-        format!("./{}", name)
-    };
-
-    let parsed_path = Path::new(&p);
-
-    let exists = parsed_path
-        .try_exists()
-        .with_context(|| "Can't verify destination.")?;
-
-    if exists {
-        bail!("Can't write to destination. Path already exists!");
-    }
-
-    Ok(String::from(
-        parsed_path.to_str().expect("Failed to parse path"),
-    ))
 }
