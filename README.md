@@ -21,7 +21,7 @@ It currently provides only a simple clone and `degitfication` of repos from GitH
 
 ## Bootstrapper
 
-State: TBD
+State: WIP
 
 A CLI that will get info on the project to be created and make necessary procedures to create all the initial boilerplate.
 
