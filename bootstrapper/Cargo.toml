@@ -1,0 +1,10 @@
+[package]
+name = "bootstrapper"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { workspace = true }
+anyhow = { workspace = true }
+which = "6.0"
+rayon = "1.10"
