@@ -2,9 +2,9 @@ mod options;
 mod package_managers;
 mod techs;
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use rayon::prelude::*;
-use std::{fs, process::Command};
+use std::{collections::HashSet, fs, process::Command};
 
 pub use options::Options;
 pub use package_managers::PackageManagers;
@@ -17,9 +17,23 @@ pub fn run(opts: Options) -> Result<()> {
         techs,
     } = opts;
 
+    let mut possible_pkg_managers: HashSet<String> = HashSet::new();
+
+    for i in 0..techs.len() {
+        let t = techs.get(i).unwrap();
+        for pkg_mngrs in t.get_package_managers().into_iter() {
+            possible_pkg_managers.insert(pkg_mngrs.executable_name());
+        }
+    }
+
     let package_manager = package_manager
         .unwrap_or(PackageManagers::Npm)
+        .check_if_availabe()?
         .executable_name();
+
+    if !possible_pkg_managers.contains(&package_manager) {
+        bail!("Invalid package manager!");
+    }
 
     fs::create_dir(&project_prefix)?;
 

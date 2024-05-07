@@ -1,5 +1,7 @@
 use clap::ValueEnum;
 
+use crate::PackageManagers;
+
 #[derive(Debug, Clone, ValueEnum)]
 pub enum Techs {
     React,
@@ -36,6 +38,19 @@ impl Techs {
 
     pub fn is_mobile(&self) -> bool {
         matches!(self, Self::ReactNative)
+    }
+
+    pub fn get_package_managers(&self) -> Vec<PackageManagers> {
+        match self {
+            Self::ReactNative | Self::React | Self::NodeNest | Self::NodeExpress => {
+                vec![
+                    PackageManagers::Npm,
+                    PackageManagers::Yarn,
+                    PackageManagers::Pnpm,
+                ]
+            }
+            Self::Invalid => unreachable!(),
+        }
     }
 
     pub fn create_args(&self, project_prefix: &str, package_manager: String) -> Vec<String> {
