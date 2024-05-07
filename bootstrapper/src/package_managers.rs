@@ -1,4 +1,6 @@
-#[derive(Debug, PartialEq, Eq, Hash)]
+use clap::ValueEnum;
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone, ValueEnum)]
 pub enum PackageManagers {
     Npm,
     Pnpm,
