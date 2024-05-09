@@ -3,8 +3,7 @@ mod package_managers;
 mod techs;
 
 use anyhow::{bail, Result};
-use rayon::prelude::*;
-use std::{collections::HashSet, fs, process::Command};
+use std::{collections::HashSet, fs};
 
 pub use options::Options;
 pub use package_managers::PackageManagers;
@@ -37,26 +36,16 @@ pub fn run(opts: Options) -> Result<()> {
 
     fs::create_dir(&project_prefix)?;
 
-    techs.into_par_iter().enumerate().for_each(|(_, t)| {
-        let name = t.name(&project_prefix);
-        let mut command = Command::new("npm");
-
-        if t.is_mobile() {
-            command.env("npm_config_user_agent", &package_manager);
+    for t in techs {
+        match t.bootstrap_project(&project_prefix, &package_manager) {
+            Ok(_) => {
+                println!("Successfully bootstrapped {t} project!");
+            }
+            Err(err) => {
+                eprintln!("Failed to bootstrap {t}. Error: {err}");
+            }
         }
-
-        let output = command
-            .current_dir(&project_prefix)
-            .args(t.create_args(&project_prefix, package_manager.to_string()))
-            .output()
-            .expect("Failed to run create command for {name}");
-
-        if output.status.success() {
-            println!("Successfuly created {name}");
-        } else {
-            eprintln!("Failed to create {name}");
-        }
-    });
+    }
 
     Ok(())
 }
