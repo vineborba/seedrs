@@ -1,4 +1,7 @@
+use anyhow::{bail, Result};
 use clap::ValueEnum;
+use core::fmt;
+use std::process::Command;
 
 use crate::PackageManagers;
 
@@ -10,6 +13,20 @@ pub enum Techs {
     NodeNest,
 
     Invalid,
+}
+
+impl fmt::Display for Techs {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let str = match self {
+            Techs::React => "React",
+            Techs::ReactNative => "React-Native",
+            Techs::NodeExpress => "Express",
+            Techs::NodeNest => "NestJS",
+            Techs::Invalid => unreachable!(),
+        };
+
+        write!(f, "{str}")
+    }
 }
 
 impl From<&str> for Techs {
@@ -53,42 +70,90 @@ impl Techs {
         }
     }
 
-    pub fn create_args(&self, project_prefix: &str, package_manager: String) -> Vec<String> {
+    pub fn init_command_args<'a>(
+        &'a self,
+        project_name: &'a str,
+        package_manager: &'a str,
+    ) -> Vec<&'a str> {
         let mut args = vec![];
-
-        let project_name = self.name(project_prefix);
 
         match self {
             Techs::React => {
-                args.push("create".to_string());
-                args.push("vite@latest".to_string());
+                args.push("create");
+                args.push("vite@latest");
                 args.push(project_name);
-                args.push("--".to_string());
-                args.push("--template".to_string());
-                args.push("react-ts".to_string());
+                args.push("--");
+                args.push("--template");
+                args.push("react-ts");
             }
             Techs::NodeNest => {
-                args.push("exec".to_string());
-                args.push("--yes".to_string());
-                args.push("@nestjs/cli".to_string());
-                args.push("new".to_string());
+                args.push("exec");
+                args.push("--yes");
+                args.push("@nestjs/cli");
+                args.push("new");
                 args.push(project_name);
-                args.push("--".to_string());
-                args.push("-p".to_string());
+                args.push("--");
+                args.push("--skip-install");
+                args.push("-p");
                 args.push(package_manager);
             }
             Techs::ReactNative => {
-                args.push("create".to_string());
-                args.push("expo-app".to_string());
+                args.push("create");
+                args.push("expo-app");
                 args.push(project_name);
-                args.push("--".to_string());
-                args.push("--template".to_string());
-                args.push("blank-typescript".to_string());
+                args.push("--");
+                args.push("--no-install");
+                args.push("--template");
+                args.push("blank-typescript");
             }
-            Techs::NodeExpress => todo!(),
+            Techs::NodeExpress => {
+                args.push("init");
+                args.push("-y");
+            }
             Techs::Invalid => unreachable!(),
         };
 
         args
+    }
+
+    pub fn bootstrap_project(&self, project_prefix: &str, package_manager: &str) -> Result<()> {
+        let project_name = self.name(project_prefix);
+
+        let project_creation_args = self.init_command_args(&project_name, package_manager);
+
+        let mut init = Command::new("npm");
+
+        if self.is_mobile() {
+            init.env("npm_config_user_agent", package_manager);
+        }
+
+        let init_output = init
+            .current_dir(project_prefix)
+            .args(project_creation_args)
+            .output()?;
+
+        if !init_output.status.success() {
+            bail!("Failed to run init process.");
+        }
+
+        let git_init_output = Command::new("git")
+            .current_dir(format!("{project_prefix}/{project_name}"))
+            .arg("init")
+            .output()?;
+
+        if !git_init_output.status.success() {
+            bail!("Failed to init git repository.");
+        }
+
+        let install_output = Command::new(package_manager)
+            .current_dir(format!("{project_prefix}/{project_name}"))
+            .arg("install")
+            .output()?;
+
+        if !install_output.status.success() {
+            bail!("Failed to install dependencies.");
+        }
+
+        Ok(())
     }
 }
