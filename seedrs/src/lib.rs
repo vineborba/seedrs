@@ -1,6 +1,7 @@
 mod options;
 mod package_managers;
 mod techs;
+mod ui;
 
 use anyhow::{bail, Result};
 use std::{collections::HashSet, fs};
@@ -11,10 +12,18 @@ pub use techs::Techs;
 
 pub fn run(opts: Options) -> Result<()> {
     let Options {
-        project_prefix,
+        mut project_prefix,
         package_manager,
-        techs,
+        mut techs,
     } = opts;
+
+    if project_prefix.is_none() {
+        project_prefix = Some(ui::render_project_naming());
+    }
+
+    if techs.is_empty() {
+        techs = ui::render_tech_selection();
+    }
 
     let mut possible_pkg_managers: HashSet<String> = HashSet::new();
 
@@ -25,15 +34,17 @@ pub fn run(opts: Options) -> Result<()> {
         }
     }
 
-    let package_manager = package_manager
-        .unwrap_or(PackageManagers::Npm)
-        .check_if_availabe()?
-        .executable_name();
+    let package_manager = if let Some(package_manager) = package_manager {
+        package_manager.executable_name()
+    } else {
+        ui::render_package_manager_selection().executable_name()
+    };
 
     if !possible_pkg_managers.contains(&package_manager) {
         bail!("Invalid package manager!");
     }
 
+    let project_prefix = project_prefix.unwrap();
     fs::create_dir(&project_prefix)?;
 
     for t in techs {

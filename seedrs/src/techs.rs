@@ -53,6 +53,10 @@ impl Techs {
         format!("{project}-{suffix}")
     }
 
+    pub fn values() -> Vec<Self> {
+        vec![Self::React, Self::ReactNative, Self::NodeNest]
+    }
+
     pub fn is_mobile(&self) -> bool {
         matches!(self, Self::ReactNative)
     }
