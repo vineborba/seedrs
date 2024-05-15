@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 
-members = ["bootstrapper", "degit"]
+members = ["seedrs", "degit"]
 
 [workspace.dependencies]
 clap = { version = "4.5.4", features = ["derive"] }

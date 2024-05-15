@@ -1,3 +1,5 @@
+use std::fmt;
+
 use anyhow::{bail, Result};
 use clap::ValueEnum;
 use which::which;
@@ -7,6 +9,18 @@ pub enum PackageManagers {
     Npm,
     Pnpm,
     Yarn,
+}
+
+impl fmt::Display for PackageManagers {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let str = match self {
+            PackageManagers::Pnpm => "pnpm",
+            PackageManagers::Npm => "npm",
+            PackageManagers::Yarn => "yarn",
+        };
+
+        write!(f, "{str}")
+    }
 }
 
 impl PackageManagers {
@@ -24,5 +38,9 @@ impl PackageManagers {
         }
 
         Ok(self)
+    }
+
+    pub fn values() -> Vec<Self> {
+        vec![Self::Npm, Self::Pnpm, Self::Yarn]
     }
 }
