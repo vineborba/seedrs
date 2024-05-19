@@ -14,5 +14,5 @@ path = "src/main.rs"
 [dependencies]
 clap = { workspace = true }
 anyhow = { workspace = true }
+colored = { workspace = true }
 regex = "1.10"
-colored = "2.1"

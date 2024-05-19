@@ -22,7 +22,7 @@ pub fn run(opts: Options) -> Result<()> {
     }
 
     if techs.is_empty() {
-        techs = ui::render_tech_selection();
+        techs = ui::render_tech_selection()?;
     }
 
     let mut possible_pkg_managers: HashSet<String> = HashSet::new();
@@ -37,7 +37,7 @@ pub fn run(opts: Options) -> Result<()> {
     let package_manager = if let Some(package_manager) = package_manager {
         package_manager.executable_name()
     } else {
-        ui::render_package_manager_selection().executable_name()
+        ui::render_package_manager_selection()?.executable_name()
     };
 
     if !possible_pkg_managers.contains(&package_manager) {
