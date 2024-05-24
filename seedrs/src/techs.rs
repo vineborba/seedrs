@@ -3,54 +3,50 @@ use clap::ValueEnum;
 use core::fmt;
 use std::process::Command;
 
-use crate::PackageManagers;
+use crate::PackageManager;
 
-#[derive(Debug, Clone, ValueEnum)]
-pub enum Techs {
+#[derive(Debug, Clone, ValueEnum, Default)]
+pub enum Tech {
     React,
     ReactNative,
-    NodeExpress,
     NodeNest,
 
+    #[default]
     Invalid,
 }
 
-impl fmt::Display for Techs {
+impl fmt::Display for Tech {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let str = match self {
-            Techs::React => "React",
-            Techs::ReactNative => "React-Native",
-            Techs::NodeExpress => "Express",
-            Techs::NodeNest => "NestJS",
-            Techs::Invalid => unreachable!(),
+            Tech::React => "React",
+            Tech::ReactNative => "React-Native",
+            Tech::NodeNest => "NestJS",
+            Tech::Invalid => "Invalid",
         };
 
         write!(f, "{str}")
     }
 }
 
-impl From<&str> for Techs {
+impl From<&str> for Tech {
     fn from(value: &str) -> Self {
         match value {
-            "node" => Self::NodeExpress,
             "react" => Self::React,
-            "react-native" => Self::ReactNative,
-            "node-nestjs" => Self::NodeNest,
+            "react-native" | "rn" => Self::ReactNative,
+            "nestjs" | "node-nest" | "node-nestjs" => Self::NodeNest,
             _ => Self::Invalid,
         }
     }
 }
 
-impl Techs {
-    pub fn name(&self, project: &str) -> String {
-        let suffix = match self {
-            Techs::React => "web",
-            Techs::ReactNative => "app",
-            Techs::NodeExpress | Techs::NodeNest => "api",
-            Techs::Invalid => unreachable!(),
-        };
-
-        format!("{project}-{suffix}")
+impl Tech {
+    pub fn suffix(&self) -> String {
+        match self {
+            Tech::React => String::from("web"),
+            Tech::ReactNative => String::from("app"),
+            Tech::NodeNest => String::from("api"),
+            Tech::Invalid => unreachable!(),
+        }
     }
 
     pub fn values() -> Vec<Self> {
@@ -61,13 +57,13 @@ impl Techs {
         matches!(self, Self::ReactNative)
     }
 
-    pub fn get_package_managers(&self) -> Vec<PackageManagers> {
+    pub fn get_package_managers(&self) -> Vec<PackageManager> {
         match self {
-            Self::ReactNative | Self::React | Self::NodeNest | Self::NodeExpress => {
+            Self::ReactNative | Self::React | Self::NodeNest => {
                 vec![
-                    PackageManagers::Npm,
-                    PackageManagers::Yarn,
-                    PackageManagers::Pnpm,
+                    PackageManager::Npm,
+                    PackageManager::Yarn,
+                    PackageManager::Pnpm,
                 ]
             }
             Self::Invalid => unreachable!(),
@@ -82,7 +78,7 @@ impl Techs {
         let mut args = vec![];
 
         match self {
-            Techs::React => {
+            Tech::React => {
                 args.push("create");
                 args.push("vite@latest");
                 args.push(project_name);
@@ -90,7 +86,7 @@ impl Techs {
                 args.push("--template");
                 args.push("react-ts");
             }
-            Techs::NodeNest => {
+            Tech::NodeNest => {
                 args.push("exec");
                 args.push("--yes");
                 args.push("@nestjs/cli");
@@ -101,7 +97,7 @@ impl Techs {
                 args.push("-p");
                 args.push(package_manager);
             }
-            Techs::ReactNative => {
+            Tech::ReactNative => {
                 args.push("create");
                 args.push("expo-app");
                 args.push(project_name);
@@ -110,18 +106,14 @@ impl Techs {
                 args.push("--template");
                 args.push("blank-typescript");
             }
-            Techs::NodeExpress => {
-                args.push("init");
-                args.push("-y");
-            }
-            Techs::Invalid => unreachable!(),
+            Tech::Invalid => unreachable!(),
         };
 
         args
     }
 
     pub fn bootstrap_project(&self, project_prefix: &str, package_manager: &str) -> Result<()> {
-        let project_name = self.name(project_prefix);
+        let project_name = self.suffix();
 
         let project_creation_args = self.init_command_args(&project_name, package_manager);
 

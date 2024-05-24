@@ -1,16 +1,16 @@
 use clap::Parser;
 
-use seedrs::{Options, PackageManagers, Techs};
+use seedrs::{Options, PackageManager, Tech};
 
 #[derive(Parser, Debug)]
 pub struct Args {
     /// Technologies that will be used in the project
     #[arg(short, long, value_delimiter = ',')]
-    techs: Option<Vec<Techs>>,
+    techs: Option<Vec<Tech>>,
 
     /// PackageManager to be used
     #[arg(short, long)]
-    package_manager: Option<PackageManagers>,
+    package_manager: Option<PackageManager>,
 
     /// Project name
     name: Option<String>,
@@ -18,7 +18,7 @@ pub struct Args {
 
 impl From<Args> for Options {
     fn from(value: Args) -> Self {
-        let techs: Vec<Techs> = if let Some(techs) = value.techs {
+        let techs: Vec<Tech> = if let Some(techs) = value.techs {
             techs
         } else {
             vec![]

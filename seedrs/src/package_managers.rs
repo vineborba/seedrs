@@ -4,31 +4,32 @@ use anyhow::{bail, Result};
 use clap::ValueEnum;
 use which::which;
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, ValueEnum)]
-pub enum PackageManagers {
+#[derive(Debug, PartialEq, Eq, Hash, Clone, ValueEnum, Default)]
+pub enum PackageManager {
+    #[default]
     Npm,
     Pnpm,
     Yarn,
 }
 
-impl fmt::Display for PackageManagers {
+impl fmt::Display for PackageManager {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let str = match self {
-            PackageManagers::Pnpm => "pnpm",
-            PackageManagers::Npm => "npm",
-            PackageManagers::Yarn => "yarn",
+            PackageManager::Pnpm => "pnpm",
+            PackageManager::Npm => "npm",
+            PackageManager::Yarn => "yarn",
         };
 
         write!(f, "{str}")
     }
 }
 
-impl PackageManagers {
+impl PackageManager {
     pub fn executable_name(&self) -> String {
         match self {
-            PackageManagers::Npm => String::from("npm"),
-            PackageManagers::Pnpm => String::from("pnpm"),
-            PackageManagers::Yarn => String::from("yarn"),
+            PackageManager::Npm => String::from("npm"),
+            PackageManager::Pnpm => String::from("pnpm"),
+            PackageManager::Yarn => String::from("yarn"),
         }
     }
 
@@ -38,9 +39,5 @@ impl PackageManagers {
         }
 
         Ok(self)
-    }
-
-    pub fn values() -> Vec<Self> {
-        vec![Self::Npm, Self::Pnpm, Self::Yarn]
     }
 }
