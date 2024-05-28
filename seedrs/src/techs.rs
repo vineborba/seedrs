@@ -1,5 +1,6 @@
 use anyhow::{bail, Result};
 use clap::ValueEnum;
+use colored::{ColoredString, Colorize};
 use core::fmt;
 use std::process::Command;
 
@@ -50,7 +51,7 @@ impl Tech {
     }
 
     pub fn values() -> Vec<Self> {
-        vec![Self::React, Self::ReactNative, Self::NodeNest]
+        vec![Self::React, Self::NodeNest, Self::ReactNative]
     }
 
     pub fn is_mobile(&self) -> bool {
@@ -67,6 +68,15 @@ impl Tech {
                 ]
             }
             Self::Invalid => unreachable!(),
+        }
+    }
+
+    pub fn colorize(&self) -> ColoredString {
+        match self {
+            Tech::React => format!("{self}").bright_blue().bold(),
+            Tech::ReactNative => format!("{self}").cyan().bold(),
+            Tech::NodeNest => format!("{self}").bright_red().bold(),
+            Tech::Invalid => format!("{self}").black().bold(),
         }
     }
 

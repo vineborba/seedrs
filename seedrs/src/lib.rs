@@ -23,6 +23,7 @@ pub fn run(/* opts: Options */) -> Result<()> {
     // if project_prefix.is_none() {
     //     project_prefix = Some(ui::render_project_naming()?);
     // }
+    ui::render_welcome();
 
     let project_prefix = ui::render_project_naming_prompt()?;
 
@@ -36,24 +37,6 @@ pub fn run(/* opts: Options */) -> Result<()> {
     }
 
     let mut projects: Vec<Project> = Vec::with_capacity(sum);
-
-    for i in 0..apis {
-        let name = ui::render_naming_prompt(&project_prefix, ProjectKind::Api, i + 1)?;
-        let init_git = ui::render_git_init_prompt(&name)?;
-        let install_deps = ui::render_install_dependencies_prompt(&name)?;
-        let tech = ui::render_tech_selection_prompt(&name, ProjectKind::Api)?;
-        let package_manager = ui::render_package_manager_selection_prompt(&name, &tech)?;
-
-        projects.push(
-            ProjectBuilder::default()
-                .name(name)
-                .tech(tech)
-                .init_git(init_git)
-                .should_install(install_deps)
-                .package_manager(package_manager)
-                .build()?,
-        );
-    }
 
     for i in 0..webs {
         let name = ui::render_naming_prompt(&project_prefix, ProjectKind::Web, i + 1)?;
@@ -71,6 +54,28 @@ pub fn run(/* opts: Options */) -> Result<()> {
                 .package_manager(package_manager)
                 .build()?,
         );
+
+        println!("\n");
+    }
+
+    for i in 0..apis {
+        let name = ui::render_naming_prompt(&project_prefix, ProjectKind::Api, i + 1)?;
+        let init_git = ui::render_git_init_prompt(&name)?;
+        let install_deps = ui::render_install_dependencies_prompt(&name)?;
+        let tech = ui::render_tech_selection_prompt(&name, ProjectKind::Api)?;
+        let package_manager = ui::render_package_manager_selection_prompt(&name, &tech)?;
+
+        projects.push(
+            ProjectBuilder::default()
+                .name(name)
+                .tech(tech)
+                .init_git(init_git)
+                .should_install(install_deps)
+                .package_manager(package_manager)
+                .build()?,
+        );
+
+        println!("\n");
     }
 
     for i in 0..apps {
@@ -89,6 +94,8 @@ pub fn run(/* opts: Options */) -> Result<()> {
                 .package_manager(package_manager)
                 .build()?,
         );
+
+        println!("\n");
     }
 
     dbg!(&projects);

@@ -1,7 +1,7 @@
-use std::fmt;
-
 use anyhow::{bail, Result};
 use clap::ValueEnum;
+use colored::{ColoredString, Colorize};
+use std::fmt;
 use which::which;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, ValueEnum, Default)]
@@ -39,5 +39,13 @@ impl PackageManager {
         }
 
         Ok(self)
+    }
+
+    pub fn colorize(&self) -> ColoredString {
+        match self {
+            PackageManager::Npm => format!("{self}").red().bold(),
+            PackageManager::Pnpm => format!("{self}").yellow().bold(),
+            PackageManager::Yarn => format!("{self}").blue().bold(),
+        }
     }
 }
