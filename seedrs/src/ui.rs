@@ -4,6 +4,12 @@ use std::io::{self, BufRead, Write};
 
 use crate::{PackageManager, ProjectKind, Tech};
 
+pub fn render_welcome() {
+    println!("Welcome to {}!", "Seedrs".bold().green());
+    println!("We are now walk through the steps to define how your new projetct will be!");
+    println!();
+}
+
 pub fn render_project_naming_prompt() -> Result<String> {
     let default_project = String::from("my-project");
 
@@ -23,7 +29,6 @@ pub fn render_project_naming_prompt() -> Result<String> {
         }
         break;
     }
-    println!();
 
     let trimmed = project.trim();
     if trimmed.is_empty() {
@@ -59,10 +64,11 @@ pub fn render_project_definition_prompt() -> Result<(i32, i32, i32)> {
                 continue;
             }
 
-            let parsed = if answer.is_empty() {
+            let trimmed = answer.trim();
+            let parsed = if trimmed.is_empty() {
                 0
             } else {
-                answer.trim().parse::<i32>().unwrap_or(-1)
+                trimmed.parse::<i32>().unwrap_or(-1)
             };
 
             if parsed >= 0 {
@@ -103,7 +109,6 @@ pub fn render_naming_prompt(prefix: &str, kind: ProjectKind, order: i32) -> Resu
             println!("\nPlease, insert a valid UTF-8 string!");
             continue;
         }
-        println!();
         break;
     }
 
@@ -132,9 +137,9 @@ pub fn render_git_init_prompt(project_name: &str) -> Result<bool> {
         }
         break;
     }
-    println!();
 
-    Ok(answer.trim() != "no")
+    let result = answer.trim() != "no";
+    Ok(result)
 }
 
 pub fn render_install_dependencies_prompt(project_name: &str) -> Result<bool> {
@@ -155,16 +160,16 @@ pub fn render_install_dependencies_prompt(project_name: &str) -> Result<bool> {
         }
         break;
     }
-    println!();
 
-    Ok(answer.trim() != "no")
+    let result = answer.trim() != "no";
+    Ok(result)
 }
 
 pub fn render_tech_selection_prompt(project_name: &str, kind: ProjectKind) -> Result<Tech> {
-    println!("Please, select which technology will be used in {project_name}:");
+    println!("\nPlease, select which technology will be used in {project_name}:");
     let techs_vec = kind.get_techs();
     for (index, tech) in techs_vec.iter().enumerate() {
-        println!("{}. {}", index + 1, tech);
+        println!("{}. {}", index + 1, tech.colorize());
     }
 
     let mut answer = String::new();
@@ -173,7 +178,7 @@ pub fn render_tech_selection_prompt(project_name: &str, kind: ProjectKind) -> Re
     let mut tech = None;
 
     while tech.is_none() {
-        print!("Enter the number: ");
+        print!("Enter a number: ");
         stdout.flush()?;
         if stdin.lock().read_line(&mut answer).is_err() {
             println!("\nInvalid input, please select one of the provided techlogies!");
@@ -193,7 +198,6 @@ pub fn render_tech_selection_prompt(project_name: &str, kind: ProjectKind) -> Re
 
         tech = techs_vec.get(parsed - 1);
     }
-    println!();
     Ok(tech.unwrap().clone())
 }
 
@@ -201,11 +205,11 @@ pub fn render_package_manager_selection_prompt(
     project_name: &str,
     tech: &Tech,
 ) -> Result<PackageManager> {
-    println!("Please, select which package manager you will use for {project_name}:");
+    println!("\nPlease, select which package manager you will use for {project_name}:");
 
     let package_managers_vec = tech.get_package_managers();
     for (index, pkg_manager) in package_managers_vec.iter().enumerate() {
-        println!("{}. {}", index + 1, pkg_manager);
+        println!("{}. {}", index + 1, pkg_manager.colorize());
     }
 
     let mut answer = String::new();
@@ -233,7 +237,5 @@ pub fn render_package_manager_selection_prompt(
 
         package_manager = package_managers_vec.get(parsed - 1);
     }
-
-    println!();
     Ok(package_manager.unwrap().clone())
 }
