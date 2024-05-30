@@ -1,4 +1,5 @@
 use anyhow::Result;
+use degit::degit;
 use derive_builder::Builder;
 use std::process::{Child, Command};
 
@@ -59,6 +60,11 @@ impl Project {
     }
 
     pub fn spawn_init_command(&self, project_prefix: &str) -> Result<Child> {
+        if let Some(template) = &self.template {
+            let destination = format!("{}/{}", project_prefix, &self.name);
+            return degit(template.clone(), Some(destination), true);
+        }
+
         let project_creation_args = self.init_command_args();
 
         let mut init = Command::new("npm");

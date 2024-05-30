@@ -239,3 +239,37 @@ pub fn render_package_manager_selection_prompt(
     }
     Ok(package_manager.unwrap().clone())
 }
+
+pub fn render_template_choice_prompt(project_name: &str) -> Result<Option<String>> {
+    let mut template = None;
+
+    let mut answer = String::new();
+    let stdin = io::stdin();
+    let mut stdout = io::stdout();
+    loop {
+        print!(
+            "Would you like to use a git template for {project_name}? [{}/valid git repo url] ",
+            "no".bold()
+        );
+        stdout.flush()?;
+        if stdin.lock().read_line(&mut answer).is_err() {
+            println!("\nPlease, provide a valid UTF-8 as response!");
+            continue;
+        }
+
+        let trimmed = answer.trim();
+        if trimmed.is_empty() {
+            break;
+        }
+
+        if !trimmed.starts_with("https") && !trimmed.starts_with("git@") {
+            println!("Invalid git url provided!");
+            continue;
+        }
+
+        template = Some(trimmed.to_owned());
+        break;
+    }
+
+    Ok(template)
+}
