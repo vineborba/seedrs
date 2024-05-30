@@ -389,6 +389,7 @@ dependencies = [
  "anyhow",
  "clap",
  "colored",
+ "degit",
  "derive_builder",
  "rayon",
  "which",

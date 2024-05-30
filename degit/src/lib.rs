@@ -1,7 +1,7 @@
 use std::{
     fs,
     path::Path,
-    process::{exit, Command, Stdio},
+    process::{exit, Child, Command, Stdio},
 };
 
 pub mod options;
@@ -94,6 +94,26 @@ impl Repository {
             parsed_path.to_str().expect("Failed to parse path"),
         ))
     }
+}
+
+pub fn degit(url: String, dest: Option<String>, ssh: bool) -> Result<Child> {
+    let repository = Repository::from_url(&url)?;
+    let clone_path = repository.check_destination(&dest)?;
+
+    let url = if ssh {
+        &repository.ssh
+    } else {
+        &repository.https
+    };
+
+    Ok(Command::new("git")
+        .arg("clone")
+        .arg(url)
+        .arg(&clone_path)
+        .stdout(Stdio::null())
+        .stdin(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()?)
 }
 
 pub fn run(opt: Options) -> Result<()> {

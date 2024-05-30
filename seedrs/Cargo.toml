@@ -10,3 +10,4 @@ colored = { workspace = true }
 which = "6.0"
 rayon = "1.10"
 derive_builder = "0.20.0"
+degit = { path = "../degit" }
