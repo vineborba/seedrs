@@ -4,6 +4,8 @@ mod projects;
 mod techs;
 mod ui;
 
+use std::fs;
+
 use anyhow::Result;
 use projects::{Project, ProjectBuilder};
 
@@ -38,6 +40,7 @@ pub fn run(/* opts: Options */) -> Result<()> {
 
     let mut projects: Vec<Project> = Vec::with_capacity(sum);
 
+    // TODO: make a single loop for all types
     for i in 0..webs {
         let name = ui::render_naming_prompt(&project_prefix, ProjectKind::Web, i + 1)?;
         let init_git = ui::render_git_init_prompt(&name)?;
@@ -98,7 +101,107 @@ pub fn run(/* opts: Options */) -> Result<()> {
         println!("\n");
     }
 
-    dbg!(&projects);
+    fs::create_dir(&project_prefix)?;
+
+    let mut processes = Vec::new();
+
+    for project in projects.iter() {
+        match project.spawn_init_command(&project_prefix) {
+            Ok(child) => processes.push((project, child)),
+            Err(err) => {
+                eprintln!(
+                    "Failed to spawn init command for {}. Error: {}",
+                    project.name, err
+                );
+            }
+        }
+    }
+
+    let mut install_deps = Vec::new();
+    let mut init_git = Vec::new();
+
+    for (project, proc) in processes.into_iter() {
+        match proc.wait_with_output() {
+            Ok(output) => {
+                if output.status.success() {
+                    if project.init_git {
+                        init_git.push(project);
+                    }
+                    if project.should_install {
+                        install_deps.push(project);
+                    }
+                } else if let Some(code) = output.status.code() {
+                    eprintln!(
+                        "Error: init command for {} exited with {}",
+                        project.name, code,
+                    );
+                } else {
+                    eprintln!(
+                        "Error: init command for {} exited with no exit code",
+                        project.name,
+                    );
+                }
+            }
+            Err(err) => {
+                eprintln!(
+                    "Failed to run init command for {}. Error: {}",
+                    project.name, err
+                );
+            }
+        }
+    }
+
+    let mut processes = Vec::new();
+
+    for project in install_deps.into_iter() {
+        match project.spawn_git_init_command(&project_prefix) {
+            Ok(child) => processes.push((project, child, "git init")),
+            Err(err) => {
+                eprintln!(
+                    "Failed to spawn git initialization process for project {}. Error: {}",
+                    project.name, err
+                )
+            }
+        }
+    }
+
+    for project in init_git.into_iter() {
+        match project.spawn_install_deps_command(&project_prefix) {
+            Ok(child) => processes.push((project, child, "install dependencies")),
+            Err(err) => {
+                eprintln!(
+                    "Failed to spawn dependencies install process for project {}. Error: {}",
+                    project.name, err
+                )
+            }
+        }
+    }
+
+    for (project, proc, proc_type) in processes.into_iter() {
+        match proc.wait_with_output() {
+            Ok(output) => {
+                if output.status.success() {
+                    println!("Successfully {} for {}", proc_type, project.name);
+                } else if let Some(code) = output.status.code() {
+                    eprintln!(
+                        "Error: {} command for {} exited with {}",
+                        proc_type, project.name, code,
+                    );
+                } else {
+                    eprintln!(
+                        "Error: {} for {} exited with no exit code",
+                        proc_type, project.name,
+                    );
+                }
+            }
+            Err(err) => {
+                eprintln!(
+                    "Failed to run {} for {}. Error: {}",
+                    proc_type, project.name, err
+                );
+            }
+        }
+    }
 
     Ok(())
 }

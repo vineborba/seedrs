@@ -1,8 +1,6 @@
-use anyhow::{bail, Result};
 use clap::ValueEnum;
 use colored::{ColoredString, Colorize};
 use core::fmt;
-use std::process::Command;
 
 use crate::PackageManager;
 
@@ -78,88 +76,5 @@ impl Tech {
             Tech::NodeNest => format!("{self}").bright_red().bold(),
             Tech::Invalid => format!("{self}").black().bold(),
         }
-    }
-
-    pub fn init_command_args<'a>(
-        &'a self,
-        project_name: &'a str,
-        package_manager: &'a str,
-    ) -> Vec<&'a str> {
-        let mut args = vec![];
-
-        match self {
-            Tech::React => {
-                args.push("create");
-                args.push("vite@latest");
-                args.push(project_name);
-                args.push("--");
-                args.push("--template");
-                args.push("react-ts");
-            }
-            Tech::NodeNest => {
-                args.push("exec");
-                args.push("--yes");
-                args.push("@nestjs/cli");
-                args.push("new");
-                args.push(project_name);
-                args.push("--");
-                args.push("--skip-install");
-                args.push("-p");
-                args.push(package_manager);
-            }
-            Tech::ReactNative => {
-                args.push("create");
-                args.push("expo-app");
-                args.push(project_name);
-                args.push("--");
-                args.push("--no-install");
-                args.push("--template");
-                args.push("blank-typescript");
-            }
-            Tech::Invalid => unreachable!(),
-        };
-
-        args
-    }
-
-    pub fn bootstrap_project(&self, project_prefix: &str, package_manager: &str) -> Result<()> {
-        let project_name = self.suffix();
-
-        let project_creation_args = self.init_command_args(&project_name, package_manager);
-
-        let mut init = Command::new("npm");
-
-        if self.is_mobile() {
-            init.env("npm_config_user_agent", package_manager);
-        }
-
-        let init_output = init
-            .current_dir(project_prefix)
-            .args(project_creation_args)
-            .output()?;
-
-        if !init_output.status.success() {
-            bail!("Failed to run init process.");
-        }
-
-        let git_init_output = Command::new("git")
-            .current_dir(format!("{project_prefix}/{project_name}"))
-            .arg("init")
-            .output()?;
-
-        if !git_init_output.status.success() {
-            bail!("Failed to init git repository.");
-        }
-
-        let install_output = Command::new(package_manager)
-            .current_dir(format!("{project_prefix}/{project_name}"))
-            .arg("install")
-            .output()?;
-
-        if !install_output.status.success() {
-            bail!("Failed to install dependencies.");
-        }
-
-        Ok(())
     }
 }
