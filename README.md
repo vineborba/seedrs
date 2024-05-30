@@ -7,7 +7,7 @@ It might grow to be a serious tool to be used in specific cases in the future, b
 With that being explained, this will be separated in three main packages, which will be developed as time goes on. Those are:
 
 - Degit
-- Bootstrapper
+- Seedrs
 
 ## Packages
 
@@ -16,7 +16,7 @@ With that being explained, this will be separated in three main packages, which 
 State: WIP
 
 A simple CLI rewrite of the famous [degit](https://github.com/Rich-Harris/degit/) tool.
-It currently provides only a simple clone and `degitfication` of repos from GitHub and GitLab.
+It currently provides only a simple clone and `degitfication` of repos from GitHub, GitLab and Azure DevOps Repos.
 
 ### Seedrs
 

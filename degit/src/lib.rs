@@ -11,6 +11,7 @@ use colored::Colorize;
 use options::Options;
 use regex::Regex;
 
+#[derive(Debug)]
 pub struct Repository {
     pub owner: String,
     pub name: String,
@@ -21,9 +22,17 @@ pub struct Repository {
 
 impl Repository {
     pub fn from_url(url: &str) -> Result<Self> {
-        let re = Regex::new(
-            r"^(https?://|git@)?(?<host>github|gitlab(\.[\w\-]*)?)\.(?<dns>com|org)(/|:)(?<repo_owner>[\w\-]+)/(?<repo_name>[\w\-.]+)\.git$",
-        )?;
+        let is_azure = url.contains("azure");
+
+        let re = if is_azure {
+            Regex::new(
+                r"^(https://\w+@|git@ssh\.)(?<host>dev\.azure\.(?<dns>com)(:v\d)?)/(?<repo_owner>[\w\-]+)/(?<repo_project>[\w\-.]+)(/_git)?/(?<repo_name>[\w\-.]+)$",
+            )?
+        } else {
+            Regex::new(
+                r"^(https?://|git@)?(?<host>github|gitlab(\.[\w\-]*)?)\.(?<dns>com|org)(/|:)(?<repo_owner>[\w\-]+)/(?<repo_name>[\w\-.]+)\.git$",
+            )?
+        };
 
         let Some(captures) = re.captures(url) else {
             bail!("Invalid URL provided");
@@ -33,8 +42,24 @@ impl Repository {
         let name = String::from(&captures["repo_name"]);
         let host = String::from(&captures["host"]);
         let domain = format!("{}.{}", &host, &captures["dns"]);
-        let ssh = format!("git@{}:{}/{}", &domain, &owner, &name);
-        let https = format!("https://{}/{}/{}", &domain, &owner, &name);
+        let project = if is_azure {
+            String::from(&captures["repo_project"])
+        } else {
+            String::new()
+        };
+        let ssh = if is_azure {
+            format!("git@ssh.{}/{}/{}/{}", &host, &owner, &project, &name)
+        } else {
+            format!("git@{}:{}/{}", &domain, &owner, &name,)
+        };
+        let https = if is_azure {
+            format!(
+                "https://{}@{}/{}/{}/_git/{}",
+                &owner, &host, &owner, &project, &name,
+            )
+        } else {
+            format!("https://{}/{}/{}", &domain, &owner, &name)
+        };
         Ok(Self {
             name,
             owner,
@@ -98,7 +123,9 @@ pub fn run(opt: Options) -> Result<()> {
         &repository.host.white().bold()
     );
 
-    let output = git_process.wait_with_output().with_context(|| "")?;
+    let output = git_process
+        .wait_with_output()
+        .with_context(|| "Failed to collect git clone output")?;
     if !output.status.success() {
         let exit_code = output.status.code().expect("Failed to get exit status");
         let error = format!(
